@@ -2,6 +2,16 @@ import csv
 import requests
 from bs4 import BeautifulSoup
 
+
+def get_sub_post(post):
+    post_link = post.find('a', class_='striped-list-title')
+    if post_link is not None:
+        post_url = post_link['href']
+        post_response = requests.get(post_url)
+        post_soup = BeautifulSoup(post_response.text, 'html.parser')
+
+    return post_soup
+
 def scrape_forum_data(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -30,21 +40,14 @@ def scrape_forum_data(url):
             comments = ''
 
 
-        post_link = post.find('a', class_='striped-list-title')
         post_data = ''
-        if post_link is not None:
-            post_url = post_link['href']
-            post_response = requests.get(post_url)
-            post_soup = BeautifulSoup(post_response.text, 'html.parser')
-            post_data = post_soup.find('p', class_='post-body').text.strip()
-
+        post_soup = get_sub_post(post)
+        post_data = post_soup.find('p', class_='post-body').text.strip()
 
         if comments != '':
             if int(comments) > 0:
-                if post_link is not None:
-                    post_url = post_link['href']
-                    post_response = requests.get(post_url)
-                    post_soup = BeautifulSoup(post_response.text, 'html.parser')
+                post_soup = get_sub_post(post)
+                if post_soup:
                     comments_section = post_soup.find('div', class_='post')
                     comments_list = comments_section.find('ul', class_='comment-list')
                     moderator_reply = False
