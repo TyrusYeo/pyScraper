@@ -30,11 +30,17 @@ def scrape_forum_data(url):
             comments = ''
 
 
-        post_data = []
+        post_link = post.find('a', class_='striped-list-title')
+        post_data = ''
+        if post_link is not None:
+            post_url = post_link['href']
+            post_response = requests.get(post_url)
+            post_soup = BeautifulSoup(post_response.text, 'html.parser')
+            post_data = post_soup.find('p', class_='post-body').text.strip()
+
 
         if comments != '':
             if int(comments) > 0:
-                post_link = post.find('a', class_='striped-list-title')
                 if post_link is not None:
                     post_url = post_link['href']
                     post_response = requests.get(post_url)
