@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 
 def get_sub_post(post):
     post_link = post.find('a', class_='striped-list-title')
+    post_soup = None
+
     if post_link is not None:
         post_url = post_link['href']
         post_response = requests.get(post_url)
@@ -15,6 +17,7 @@ def get_sub_post(post):
 def scrape_forum_data(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
+    # print(soup.prettify())
 
     posts = soup.find_all('div', class_='striped-list-item')
 
@@ -24,8 +27,6 @@ def scrape_forum_data(url):
         title = title_element.text.strip() if title_element else ''
         date_element = post.find('time')
         date = date_element['datetime'] if date_element else ''
-        # post_content_element = post.find('div', class_='post-body')
-        # post_content = post_content_element.text.strip() if post_content_element else ''
 
         post_overview = post.find('div', class_='post-overview-count striped-list-count')
         if post_overview:
@@ -42,30 +43,34 @@ def scrape_forum_data(url):
 
         post_data = ''
         post_soup = get_sub_post(post)
-        post_data = post_soup.find('p', class_='post-body').text.strip()
+        post_data_element = post_soup.find('div', class_='post-body')
+        if post_data_element:
+            post_data = post_data_element.text.strip()
 
+        master_moderator_info = ''
         if comments != '':
             if int(comments) > 0:
-                post_soup = get_sub_post(post)
                 if post_soup:
                     comments_section = post_soup.find('div', class_='post')
                     comments_list = comments_section.find('ul', class_='comment-list')
-                    moderator_reply = False
 
                     comments_data = []
                     for comment in comments_list.find_all('li', class_='comment'):
                         commenter = comment.find('div', class_='guide__user-comment__meta').find('a').text.strip()
                         comment_text = comment.find('section', class_='comment-body').text.strip()
 
-                        moderator_info = comment.find('div', class_='community-badge-container-titles')
-                        moderator_reply = True if moderator_info else False
+                        moderator_element = comment.find('span', class_='community-badge community-badge-titles')
+                        if moderator_element:
+                            moderator_info = moderator_element.text.strip()
+                            master_moderator_info = moderator_info
+                        else:
+                            ''
 
                         comments_data.append([commenter, comment_text])
 
-                    data.append([title, date, votes, comments,  moderator_reply, post_data, comments_data])
+                    data.append([title, date, votes, comments,  master_moderator_info, post_data, comments_data])
             else:
-                moderator_reply = False
-                data.append([title, date, votes, comments, moderator_reply, post_data, []])
+                data.append([title, date, votes, comments, master_moderator_info, post_data, []])
 
     return data
 
@@ -81,7 +86,7 @@ def scrape_forum_pages(base_url, num_pages):
 def save_data_to_csv(data, filename):
     with open(filename, 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['Title', 'Date', 'Votes', 'Comments', 'Moderator Reply', 'Thread Posts'])
+        writer.writerow(['Title', 'Date', 'Votes', 'Comments', 'Moderator Info', 'Post Content', 'Thread Posts'])
         writer.writerows(data)
 
 base_url = ''
@@ -91,24 +96,3 @@ forum_data = scrape_forum_pages(base_url, num_pages)
 
 csv_filename = 'forum_data.csv'
 save_data_to_csv(forum_data, csv_filename)
-
-
-# return data, soup
-
-# def scrape_forum_pages(base_url):
-#     all_data = []
-#     page = 1
-#
-#     while True:
-#         page_url = f"{base_url}?page={page}"
-#         data, soup = scrape_forum_data(page_url)
-#         all_data.extend(data)
-#
-#         next_link = soup.find('a', class_='pagination-next-link')
-#         if not next_link:
-#             break
-#
-#         base_url = next_link['href']
-#         page += 1
-#
-#     return all_data
