@@ -58,7 +58,6 @@ def scrape_forum_data(url):
                     for comment in comments_list.find_all('li', class_='comment'):
                         commenter_element = comment.find('div', class_='guide__user-comment__meta').find('a')
                         commenter = ''
-                        comment_text = ''
                         if commenter_element:
                             commenter = commenter_element.text.strip()
 
@@ -83,7 +82,7 @@ def scrape_forum_pages(base_url):
     all_data = []
     page = 1
 
-    while True and page < 3:
+    while True:
         page_url = f"{base_url}?page={page}"
         data, soup = scrape_forum_data(page_url)
         all_data.extend(data)
