@@ -56,7 +56,12 @@ def scrape_forum_data(url):
 
                     comments_data = []
                     for comment in comments_list.find_all('li', class_='comment'):
-                        commenter = comment.find('div', class_='guide__user-comment__meta').find('a').text.strip()
+                        commenter_element = comment.find('div', class_='guide__user-comment__meta').find('a')
+                        commenter = ''
+                        comment_text = ''
+                        if commenter_element:
+                            commenter = commenter_element.text.strip()
+
                         comment_text = comment.find('section', class_='comment-body').text.strip()
 
                         moderator_element = comment.find('span', class_='community-badge community-badge-titles')
@@ -72,14 +77,23 @@ def scrape_forum_data(url):
             else:
                 data.append([title, date, votes, comments, master_moderator_info, post_data, []])
 
-    return data
+    return data, soup
 
-def scrape_forum_pages(base_url, num_pages):
+def scrape_forum_pages(base_url):
     all_data = []
-    for page in range(1, num_pages + 1):
+    page = 1
+
+    while True and page < 3:
         page_url = f"{base_url}?page={page}"
-        data = scrape_forum_data(page_url)
+        data, soup = scrape_forum_data(page_url)
         all_data.extend(data)
+
+        next_link = soup.find('a', class_='pagination-next-link')
+        if not next_link:
+            break
+
+        base_url = '' + next_link['href']
+        page += 1
 
     return all_data
 
@@ -90,9 +104,8 @@ def save_data_to_csv(data, filename):
         writer.writerows(data)
 
 base_url = ''
-num_pages = 1
 
-forum_data = scrape_forum_pages(base_url, num_pages)
+forum_data = scrape_forum_pages(base_url)
 
 csv_filename = 'forum_data.csv'
 save_data_to_csv(forum_data, csv_filename)
